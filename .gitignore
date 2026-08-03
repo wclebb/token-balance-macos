@@ -1,0 +1,11 @@
+.DS_Store
+.build/
+.superpowers/
+work/
+outputs/
+*.xcarchive
+*.dSYM/
+DerivedData/
+xcuserdata/
+*.swp
+*~
