@@ -1,11 +1,14 @@
-# Token 余量（Token Balance）
+# Token Balance
+
+<p align="center">
+  <a href="README_ZH.md">简体中文</a> · <strong>English</strong>
+</p>
 
 <p align="center">
   <img src="Resources/AppIconConcepts/token-balance-concept-a-v1-transparent.png" width="160" alt="Token Balance icon">
 </p>
 
 <p align="center">
-  一款本机运行的 macOS 菜单栏工具，用于查看 ChatGPT 订阅额度。<br>
   A local-first macOS menu bar utility for monitoring ChatGPT subscription usage.
 </p>
 
@@ -13,68 +16,68 @@
 ![Release](https://img.shields.io/badge/release-v1.0.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 
-## 功能
+## Features
 
-- 显示 Weekly 剩余额度百分比和自然重置倒计时。
-- 显示当前可用的额外 Reset 数量及临近到期提醒。
-- 每 60 秒自动刷新，也可从菜单立即刷新。
-- 使用 macOS 原生分层菜单，菜单栏文字跟随系统前景色。
-- 自动复用本机 ChatGPT/Codex 登录状态，不要求选择文件或重新登录。
-- 通过轻量后台组件随 ChatGPT 启动和退出。
-- 使用统一 Provider 模型，为未来接入其他 AI 平台保留扩展空间。
+- Displays your remaining Weekly allowance and the countdown to its natural reset.
+- Shows the number of additional Resets available and warns you before they expire.
+- Refreshes automatically every 60 seconds, with an option to refresh immediately.
+- Uses a native hierarchical macOS menu and follows the system menu bar text color.
+- Reuses the signed-in state of the local ChatGPT/Codex desktop app without requiring you to select files or sign in again.
+- Starts and exits alongside ChatGPT through a lightweight background watcher.
+- Uses a unified Provider model, leaving room for additional AI platforms in the future.
 
-常态菜单栏格式：
+The normal menu bar format is:
 
 ```text
 65% · R×2 · 6d
 ```
 
-| 字段 | 含义 |
+| Field | Meaning |
 | --- | --- |
-| `65%` | Weekly 剩余额度 |
-| `R×2` | 还有 2 次可用的额外 Reset |
-| `6d` | 距离 Weekly 自然重置还有 6 天 |
+| `65%` | Remaining Weekly allowance |
+| `R×2` | Two additional Resets are currently available |
+| `6d` | Six days until the natural Weekly reset |
 
-额外 Reset 临近过期时，尾部会临时切换为最近一次到期倒计时。若上游不提供 Weekly 精确调用次数，应用显示 `W—`，不会用百分比伪造次数。
+When an additional Reset is close to expiring, the final field temporarily changes to its nearest expiry countdown. If the upstream source does not provide an exact number of Weekly uses, the app displays `W—` rather than fabricating a count from the percentage.
 
-## 系统要求
+## System Requirements
 
-- Apple Silicon Mac（当前 Release 为 arm64）
-- macOS 14 Sonoma 或更高版本
-- 已安装并登录 ChatGPT/Codex 桌面应用
+- An Apple silicon Mac (the current Release is built for arm64)
+- macOS 14 Sonoma or later
+- The ChatGPT/Codex desktop app installed and signed in
 
-## 安装
+## Installation
 
-1. 从 [Releases](../../releases/latest) 下载 `Token-Balance-macOS.zip`。
-2. 解压并将 `Token Balance.app` 拖入“应用程序”。系统显示名为“Token 余量”。
-3. 当前 Release 使用 ad-hoc 签名，未经过 Apple Developer ID 公证。若 Gatekeeper 阻止首次启动，请在 Finder 中右键应用并选择“打开”。
+1. Download `Token-Balance-macOS.zip` from [Releases](https://github.com/chakcodes/token-balance-macos/releases/latest).
+2. Extract it and move `Token Balance.app` into Applications. The system display name is “Token 余量.”
+3. The current Release uses an ad-hoc signature and is not notarized with an Apple Developer ID. If Gatekeeper blocks the first launch, right-click the app in Finder and select **Open**.
 
-首次运行会安装名为 `Token Balance Watcher` 的用户级后台组件。之后 ChatGPT 启动时 Token 余量自动启动，ChatGPT 退出时 Token 余量自动退出。用户手动退出后，本轮 ChatGPT 会话内不会被重新拉起。
+On first launch, Token Balance installs a user-level background component named `Token Balance Watcher`. Token Balance will then start when ChatGPT starts and exit when ChatGPT exits. If you quit Token Balance manually, the watcher will not reopen it during the current ChatGPT session.
 
-后台组件位置：
+Background component locations:
 
 ```text
 ~/Library/Application Support/Token Balance/Token Balance Watcher
 ~/Library/LaunchAgents/com.tokenbalance.watcher.plist
 ```
 
-升级自早期 TokenBar 版本时，应用会自动停用并移除旧 Watcher 和旧 LaunchAgent。
+When upgrading from an early TokenBar build, the app automatically disables and removes the legacy watcher and LaunchAgent.
 
-## 数据与隐私
+## Data and Privacy
 
-Token 余量调用本机 ChatGPT/Codex 桌面应用自带的 `app-server`，读取当前账户提供的额度窗口：
+Token Balance calls the local `app-server` included with the ChatGPT/Codex desktop app and reads the usage windows available for the current account:
 
-- Weekly 已使用比例与自然重置时间；
-- 可用额外 Reset 数量及过期时间；
-- 当前订阅计划与额度窗口。
+- Weekly usage percentage and natural reset time;
+- Available additional Reset count and expiry time;
+- Current subscription plan and usage windows.
 
-应用不读取、复制、上传或保存 ChatGPT 登录令牌，也不运行自有云端服务。通知和偏好设置仅保存在本机。
+The app does not read, copy, upload, or store ChatGPT login tokens, and it does not operate its own cloud service. Notifications and preferences remain on your Mac.
 
-> 本项目依赖未承诺长期稳定的本机 app-server 协议。ChatGPT/Codex 桌面应用升级后，可能需要同步适配。
+> This project depends on a local app-server protocol that is not guaranteed to remain stable. Updates to the ChatGPT/Codex desktop app may require corresponding compatibility changes.
 
-## 从源码构建
+## Building from Source
 
-无需完整 Xcode，安装 Apple Command Line Tools 后执行：
+A full Xcode installation is not required. Install Apple Command Line Tools, then run:
 
 ```bash
 bash scripts/test.sh
@@ -82,29 +85,29 @@ bash scripts/build-app.sh
 bash scripts/test-branding.sh
 ```
 
-生成产物：
+Generated artifacts:
 
 ```text
 outputs/Token Balance.app
 outputs/Token-Balance-macOS.zip
 ```
 
-## 项目结构
+## Project Structure
 
 ```text
-Sources/TokenBarCore/       额度模型、格式化、提醒和 Provider
-Sources/TokenBarApp/        AppKit 菜单栏应用与 Watcher 安装器
-Sources/TokenBarWatcher/    ChatGPT 生命周期监听后台组件
-Resources/                  Info.plist 与 App Icon
-Tests/                      核心行为测试
-scripts/                    构建和验证脚本
+Sources/TokenBarCore/       Usage models, formatting, alerts, and Provider
+Sources/TokenBarApp/        AppKit menu bar app and watcher installer
+Sources/TokenBarWatcher/    ChatGPT lifecycle background watcher
+Resources/                  Info.plist and App Icon
+Tests/                      Core behavior tests
+scripts/                    Build and verification scripts
 ```
 
-内部类名、可执行文件名和 Bundle ID 中保留部分 `TokenBar` 标识，用于兼容早期版本；它们不是当前产品显示名称。
+Some internal class names, executable names, and the Bundle ID retain the `TokenBar` identifier for compatibility with early versions. They are not the current user-facing product name.
 
-## 卸载
+## Uninstallation
 
-退出 Token 余量后，可删除应用，并执行：
+Quit Token Balance, delete the app, and run:
 
 ```bash
 launchctl bootout "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.tokenbalance.watcher.plist" 2>/dev/null || true
@@ -112,18 +115,18 @@ rm -f "$HOME/Library/LaunchAgents/com.tokenbalance.watcher.plist"
 rm -rf "$HOME/Library/Application Support/Token Balance"
 ```
 
-## 开发方式：AI 辅助 / Vibe Coding
+## Development Approach: AI-Assisted / Vibe Coding
 
-本仓库采用 AI 辅助的 Vibe Coding 工作流完成设计与实现。披露这一点是为了说明开发过程，而不是替代工程质量保证；可执行行为仍以源代码、自动化测试和 Release 验证结果为准。欢迎审查、修改和重新分发。
+This repository was designed and implemented with an AI-assisted Vibe Coding workflow. This disclosure describes the development process; it is not a substitute for engineering quality assurance. Executable behavior remains grounded in the source code, automated tests, and Release verification results. Review, modification, and redistribution are welcome.
 
-## 贡献与安全
+## Contributing and Security
 
-提交改进前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。安全问题请按 [SECURITY.md](SECURITY.md) 私密报告，不要在公开 Issue 中提交令牌或个人数据。
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting changes. Report security issues privately according to [SECURITY.md](SECURITY.md), and never include login tokens or personal data in a public Issue.
 
-## 许可证
+## License
 
-本项目按 [Apache License 2.0](LICENSE) 开源。你可以使用、修改和再分发本项目，包括商业用途，但须遵守许可证中的版权、许可证副本、修改声明和专利条款。
+This project is open source under the [Apache License 2.0](LICENSE). You may use, modify, and redistribute it, including for commercial purposes, subject to the copyright, license-copy, modification-notice, and patent provisions of the license.
 
-## 商标声明
+## Trademark Notice
 
-ChatGPT、OpenAI、Codex 和 Apple 是其各自权利人的商标。本项目是独立开源项目，与 OpenAI 或 Apple 无隶属、赞助或认可关系。
+ChatGPT, OpenAI, Codex, and Apple are trademarks of their respective owners. This is an independent open-source project and is not affiliated with, sponsored by, or endorsed by OpenAI or Apple.
