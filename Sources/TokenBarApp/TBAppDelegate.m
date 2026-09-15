@@ -14,7 +14,7 @@
     [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
     [TBWatcherInstaller installForApplicationBundle:NSBundle.mainBundle];
     self.statusItem = [NSStatusBar.systemStatusBar statusItemWithLength:NSVariableStatusItemLength];
-    self.statusItem.button.title = @"—% · W— · —";
+    self.statusItem.button.title = @"5H —% · W —% · R×—";
     self.statusItem.button.contentTintColor = nil;
     self.statusItem.button.toolTip = @"Token 余量 — ChatGPT 订阅额度";
 
@@ -54,6 +54,19 @@
     if (menu == self.statusMenu) [self rebuildMenu];
 }
 
+- (void)addDetail:(NSString *)text toMenu:(NSMenu *)menu {
+    NSMenuItem *item = [self itemWithTitle:text action:nil];
+    item.enabled = NO;
+    [menu addItem:item];
+}
+
+- (NSString *)resetDescription:(NSDate *)date {
+    if (!date) return @"未提供";
+    NSString *timestamp = [NSDateFormatter localizedStringFromDate:date dateStyle:NSDateFormatterMediumStyle timeStyle:NSDateFormatterShortStyle];
+    NSString *remaining = [date timeIntervalSinceNow] <= 0 ? @"等待刷新" : [NSString stringWithFormat:@"%@后", [TBMenuBarFormatter shortDurationFrom:NSDate.date to:date]];
+    return [NSString stringWithFormat:@"%@（%@）", timestamp, remaining];
+}
+
 - (void)rebuildMenu {
     [self.statusMenu removeAllItems];
     TBUsageSnapshot *snapshot = self.store.snapshot;
@@ -67,6 +80,20 @@
     NSMenuItem *usage = [self itemWithTitle:usageText action:nil];
     usage.enabled = NO;
     [self.statusMenu addItem:usage];
+    if (snapshot) {
+        [self.statusMenu addItem:NSMenuItem.separatorItem];
+        [self addDetail:[NSString stringWithFormat:@"5-hour 剩余：%@", snapshot.fiveHourPercentRemaining ? [NSString stringWithFormat:@"%@%%", snapshot.fiveHourPercentRemaining] : @"未提供"] toMenu:self.statusMenu];
+        [self addDetail:[NSString stringWithFormat:@"5-hour 重置：%@", [self resetDescription:snapshot.fiveHourResetsAt]] toMenu:self.statusMenu];
+        [self addDetail:[NSString stringWithFormat:@"Weekly 剩余：%@", snapshot.percentRemaining ? [NSString stringWithFormat:@"%@%%", snapshot.percentRemaining] : @"未提供"] toMenu:self.statusMenu];
+        [self addDetail:[NSString stringWithFormat:@"Weekly 重置：%@", [self resetDescription:snapshot.resetsAt]] toMenu:self.statusMenu];
+        if (snapshot.usesRemaining) [self addDetail:[NSString stringWithFormat:@"Weekly 剩余次数：%@", snapshot.usesRemaining] toMenu:self.statusMenu];
+        [self addDetail:[NSString stringWithFormat:@"Banked resets：%ld 次可用", (long)snapshot.extraResetCount] toMenu:self.statusMenu];
+        NSDate *nearestExpiry = nil;
+        for (TBExtraReset *reset in snapshot.extraResets) {
+            if ([reset.expiresAt timeIntervalSinceNow] >= 0 && (!nearestExpiry || [reset.expiresAt compare:nearestExpiry] == NSOrderedAscending)) nearestExpiry = reset.expiresAt;
+        }
+        [self addDetail:[NSString stringWithFormat:@"Reset 最近到期：%@", [self resetDescription:nearestExpiry]] toMenu:self.statusMenu];
+    }
     [self.statusMenu addItem:NSMenuItem.separatorItem];
 
     NSMenuItem *refresh = [self itemWithTitle:self.store.isRefreshing ? @"正在刷新…" : @"立即刷新" action:@selector(refresh:)];
@@ -120,7 +147,7 @@
 - (void)usageStoreDidChange:(TBUsageStore *)store {
     TBUsageSnapshot *snapshot = store.snapshot;
     if (!snapshot) {
-        self.statusItem.button.title = store.isRefreshing ? @"同步中…" : @"—% · W— · —";
+        self.statusItem.button.title = store.isRefreshing ? @"同步中…" : @"5H —% · W —% · R×—";
         self.statusItem.button.contentTintColor = nil;
         [self rebuildMenu];
         return;
