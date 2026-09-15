@@ -18,7 +18,7 @@
 
 ## Features
 
-- Displays your remaining Weekly allowance and the countdown to its natural reset.
+- Displays both 5-hour and Weekly remaining percentages, with independent reset times in the menu.
 - Shows the number of additional Resets available and warns you before they expire.
 - Refreshes automatically every 60 seconds, with an option to refresh immediately.
 - Uses a native hierarchical macOS menu and follows the system menu bar text color.
@@ -29,16 +29,16 @@
 The normal menu bar format is:
 
 ```text
-65% · R×2 · 6d
+5H 82% · W 65% · R×2
 ```
 
 | Field | Meaning |
 | --- | --- |
-| `65%` | Remaining Weekly allowance |
+| `5H 82%` | Remaining 5-hour allowance |
+| `W 65%` | Remaining Weekly allowance |
 | `R×2` | Two additional Resets are currently available |
-| `6d` | Six days until the natural Weekly reset |
 
-When an additional Reset is close to expiring, the final field temporarily changes to its nearest expiry countdown. If the upstream source does not provide an exact number of Weekly uses, the app displays `W—` rather than fabricating a count from the percentage.
+The menu shows each window's remaining percentage, local reset date/time and countdown, plus the available banked reset count and nearest expiry. When a Reset is close to expiring, the bar appends an expiry warning (for example ` · ⚠ R 8h`) without replacing either percentage or the available reset count. Missing windows display `—%`; the app never substitutes the 5-hour window for Weekly or invents usage counts. Exact Weekly use counts, when provided, remain available in the menu.
 
 ## System Requirements
 
@@ -67,7 +67,7 @@ When upgrading from an early TokenBar build, the app automatically disables and 
 
 Token Balance calls the local `app-server` included with the ChatGPT/Codex desktop app and reads the usage windows available for the current account:
 
-- Weekly usage percentage and natural reset time;
+- 5-hour and Weekly usage percentages and independent natural reset times;
 - Available additional Reset count and expiry time;
 - Current subscription plan and usage windows.
 

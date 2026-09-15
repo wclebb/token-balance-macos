@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Add independent 5-hour remaining percentage and reset time alongside Weekly.
+- Identify app-server windows by 300/10080-minute durations regardless of slot order; missing windows remain unknown.
+- Show `5H … · W … · R×…` in the menu bar, with reset times, expiry details and any Weekly use count in the native menu.
+- Preserve banked reset counts, expiry alerts and stale-data markers; expand parser and formatter regression coverage.
+
+
 本项目遵循语义化版本号。
 
 ## 1.0.0 — 2026-08-03
