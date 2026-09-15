@@ -30,6 +30,9 @@ typedef NS_ENUM(NSInteger, TBWatcherAction) {
 
 @interface TBUsageSnapshot : NSObject
 @property (nonatomic, copy, readonly) NSString *providerID;
+// Existing unprefixed fields describe the weekly window.
+@property (nonatomic, strong, readonly, nullable) NSNumber *fiveHourPercentRemaining;
+@property (nonatomic, strong, readonly, nullable) NSDate *fiveHourResetsAt;
 @property (nonatomic, strong, readonly, nullable) NSNumber *percentRemaining;
 @property (nonatomic, strong, readonly, nullable) NSNumber *usesRemaining;
 @property (nonatomic, strong, readonly, nullable) NSDate *resetsAt;
@@ -49,6 +52,16 @@ typedef NS_ENUM(NSInteger, TBWatcherAction) {
                        extraResets:(NSArray<TBExtraReset *> *)extraResets
                    extraResetCount:(NSInteger)extraResetCount
                         capturedAt:(NSDate *)capturedAt;
+- (instancetype)initWithProviderID:(NSString *)providerID
+                  percentRemaining:(nullable NSNumber *)percentRemaining
+                     usesRemaining:(nullable NSNumber *)usesRemaining
+                          resetsAt:(nullable NSDate *)resetsAt
+          fiveHourPercentRemaining:(nullable NSNumber *)fiveHourPercentRemaining
+                  fiveHourResetsAt:(nullable NSDate *)fiveHourResetsAt
+                       extraResets:(NSArray<TBExtraReset *> *)extraResets
+                   extraResetCount:(NSInteger)extraResetCount
+                        capturedAt:(NSDate *)capturedAt;
+
 @end
 
 @interface TBMenuBarLabel : NSObject

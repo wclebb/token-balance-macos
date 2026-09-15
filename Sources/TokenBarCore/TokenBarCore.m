@@ -47,7 +47,20 @@
                        extraResets:(NSArray<TBExtraReset *> *)extraResets
                    extraResetCount:(NSInteger)extraResetCount
                         capturedAt:(NSDate *)capturedAt {
+    return [self initWithProviderID:providerID percentRemaining:percentRemaining usesRemaining:usesRemaining resetsAt:resetsAt fiveHourPercentRemaining:nil fiveHourResetsAt:nil extraResets:extraResets extraResetCount:extraResetCount capturedAt:capturedAt];
+}
+- (instancetype)initWithProviderID:(NSString *)providerID
+                  percentRemaining:(NSNumber *)percentRemaining
+                     usesRemaining:(NSNumber *)usesRemaining
+                          resetsAt:(NSDate *)resetsAt
+          fiveHourPercentRemaining:(NSNumber *)fiveHourPercentRemaining
+                  fiveHourResetsAt:(NSDate *)fiveHourResetsAt
+                       extraResets:(NSArray<TBExtraReset *> *)extraResets
+                   extraResetCount:(NSInteger)extraResetCount
+                        capturedAt:(NSDate *)capturedAt {
     if ((self = [super init])) {
+        _fiveHourPercentRemaining = fiveHourPercentRemaining;
+        _fiveHourResetsAt = fiveHourResetsAt;
         _providerID = [providerID copy];
         _percentRemaining = percentRemaining;
         _usesRemaining = usesRemaining;
@@ -83,24 +96,22 @@
                                  now:(NSDate *)now
                       alertThreshold:(NSTimeInterval)alertThreshold {
     NSString *percent = snapshot.percentRemaining ? [NSString stringWithFormat:@"%@%%", snapshot.percentRemaining] : @"—%";
-    NSString *uses = snapshot.usesRemaining ? [NSString stringWithFormat:@"W%@", snapshot.usesRemaining] : [NSString stringWithFormat:@"R×%ld", (long)snapshot.extraResetCount];
-    NSArray<TBExtraReset *> *expiring = [snapshot.extraResets filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(TBExtraReset *reset, NSDictionary *_) {
+    NSString *fiveHour = snapshot.fiveHourPercentRemaining ? [NSString stringWithFormat:@"%@%%", snapshot.fiveHourPercentRemaining] : @"—%";
+    NSArray<TBExtraReset *> *expiring = [snapshot.extraResets filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(TBExtraReset *reset, __unused NSDictionary *_) {
         NSTimeInterval remaining = [reset.expiresAt timeIntervalSinceDate:now];
         return remaining >= 0 && remaining <= alertThreshold;
     }]];
     TBMenuBarLabelKind kind = TBMenuBarLabelKindNormal;
-    NSString *tail = snapshot.resetsAt ? [self shortDurationFrom:now to:snapshot.resetsAt] : @"—";
+    NSString *tail = @"";
     if (expiring.count > 0) {
         TBExtraReset *soonest = [expiring sortedArrayUsingComparator:^NSComparisonResult(TBExtraReset *a, TBExtraReset *b) {
             return [a.expiresAt compare:b.expiresAt];
         }].firstObject;
-        tail = snapshot.usesRemaining
-            ? [NSString stringWithFormat:@"R×%lu %@", (unsigned long)expiring.count, [self shortDurationFrom:now to:soonest.expiresAt]]
-            : [self shortDurationFrom:now to:soonest.expiresAt];
+        tail = [NSString stringWithFormat:@" · ⚠ R %@", [self shortDurationFrom:now to:soonest.expiresAt]];
         kind = TBMenuBarLabelKindWarning;
     }
     BOOL stale = [now timeIntervalSinceDate:snapshot.capturedAt] > 7200;
-    NSString *text = [NSString stringWithFormat:@"%@ · %@ · %@%@", percent, uses, tail, stale ? @" ↻" : @""];
+    NSString *text = [NSString stringWithFormat:@"5H %@ · W %@ · R×%ld%@%@", fiveHour, percent, (long)snapshot.extraResetCount, tail, stale ? @" ↻" : @""];
     return [[TBMenuBarLabel alloc] initWithText:text kind:kind stale:stale];
 }
 @end
@@ -160,6 +171,12 @@ static NSDate *TBDateFromValue(id value) {
 @end
 
 
+static NSNumber *TBRemainingPercent(NSDictionary *window) {
+    NSNumber *used = window[@"usedPercent"];
+    if (![used isKindOfClass:NSNumber.class] || !isfinite(used.doubleValue)) return nil;
+    return @(MAX(0, MIN(100, 100 - used.doubleValue)));
+}
+
 @implementation TBCodexRateLimitParser
 + (TBUsageSnapshot *)snapshotFromResponseData:(NSData *)data capturedAt:(NSDate *)capturedAt error:(NSError **)error {
     id root = [NSJSONSerialization JSONObjectWithData:data options:0 error:error];
@@ -179,11 +196,19 @@ static NSDate *TBDateFromValue(id value) {
     }
     NSDictionary *primary = [snapshotJSON[@"primary"] isKindOfClass:NSDictionary.class] ? snapshotJSON[@"primary"] : nil;
     NSDictionary *secondary = [snapshotJSON[@"secondary"] isKindOfClass:NSDictionary.class] ? snapshotJSON[@"secondary"] : nil;
-    NSDictionary *weekly = [primary[@"windowDurationMins"] integerValue] >= 10080 ? primary : ([secondary[@"windowDurationMins"] integerValue] >= 10080 ? secondary : (primary ?: secondary));
-    NSNumber *usedPercent = weekly[@"usedPercent"];
-    NSNumber *percentRemaining = [usedPercent isKindOfClass:NSNumber.class] ? @(MAX(0, MIN(100, 100 - usedPercent.integerValue))) : nil;
-    NSNumber *resetTimestamp = weekly[@"resetsAt"];
-    NSDate *resetsAt = [resetTimestamp isKindOfClass:NSNumber.class] ? [NSDate dateWithTimeIntervalSince1970:resetTimestamp.doubleValue] : nil;
+    // Slot order varies by account: identify windows by duration, never by position.
+    NSDictionary *weekly = nil;
+    NSDictionary *fiveHour = nil;
+    for (NSDictionary *window in @[primary ?: @{}, secondary ?: @{}]) {
+        NSNumber *duration = window[@"windowDurationMins"];
+        if (![duration isKindOfClass:NSNumber.class]) continue;
+        if (duration.doubleValue == 10080) weekly = window;
+        if (duration.doubleValue == 300) fiveHour = window;
+    }
+    NSNumber *percentRemaining = TBRemainingPercent(weekly);
+    NSDate *resetsAt = TBDateFromValue(weekly[@"resetsAt"]);
+    NSNumber *fiveHourPercent = TBRemainingPercent(fiveHour);
+    NSDate *fiveHourResetsAt = TBDateFromValue(fiveHour[@"resetsAt"]);
 
     NSDictionary *creditSummary = [result[@"rateLimitResetCredits"] isKindOfClass:NSDictionary.class] ? result[@"rateLimitResetCredits"] : nil;
     NSArray *credits = [creditSummary[@"credits"] isKindOfClass:NSArray.class] ? creditSummary[@"credits"] : @[];
@@ -194,7 +219,7 @@ static NSDate *TBDateFromValue(id value) {
         [resets addObject:[[TBExtraReset alloc] initWithID:identifier expiresAt:[NSDate dateWithTimeIntervalSince1970:[credit[@"expiresAt"] doubleValue]]]];
     }
     NSInteger availableCount = [creditSummary[@"availableCount"] isKindOfClass:NSNumber.class] ? [creditSummary[@"availableCount"] integerValue] : resets.count;
-    return [[TBUsageSnapshot alloc] initWithProviderID:@"chatgpt" percentRemaining:percentRemaining usesRemaining:nil resetsAt:resetsAt extraResets:resets extraResetCount:availableCount capturedAt:capturedAt];
+    return [[TBUsageSnapshot alloc] initWithProviderID:@"chatgpt" percentRemaining:percentRemaining usesRemaining:nil resetsAt:resetsAt fiveHourPercentRemaining:fiveHourPercent fiveHourResetsAt:fiveHourResetsAt extraResets:resets extraResetCount:availableCount capturedAt:capturedAt];
 }
 @end
 
